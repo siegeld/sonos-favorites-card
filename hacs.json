@@ -1,0 +1,6 @@
+{
+  "name": "Sonos Favorites Card",
+  "type": "plugin",
+  "filename": "dist/sonos-favorites-card.js",
+  "render_readme": true
+}
