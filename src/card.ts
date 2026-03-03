@@ -71,6 +71,7 @@ export class SonosFavoritesCard extends LitElement {
         }
       }
 
+      favorites.sort((a, b) => a.title.localeCompare(b.title));
       this._favorites = favorites;
       this._fetchedEntity = this._config.entity;
     } catch (e: any) {

@@ -1315,6 +1315,7 @@ class $a399cc6bbb0eb26a$export$5a2911305245fc9d extends (0, $ab210b2da7b39b9d$ex
                     thumbnail: item.thumbnail
                 });
             }
+            favorites.sort((a, b)=>a.title.localeCompare(b.title));
             this._favorites = favorites;
             this._fetchedEntity = this._config.entity;
         } catch (e) {
