@@ -133,7 +133,12 @@ export class SonosFavoritesCard extends LitElement {
           ${this._favorites.length === 0
             ? html`<p class="loading">No favorites found</p>`
             : html`
-                <div class="button-grid">
+                <div
+                  class="button-grid"
+                  style="${this._config.rows
+                    ? `max-height: ${this._config.rows * 46}px`
+                    : ""}"
+                >
                   ${this._favorites.map(
                     (fav) => html`
                       <button

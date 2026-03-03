@@ -3,6 +3,7 @@ import { LovelaceCardConfig } from "custom-card-helpers";
 export interface SonosFavoritesCardConfig extends LovelaceCardConfig {
   name?: string;
   entity: string;
+  rows?: number;
 }
 
 export interface SonosFavorite {

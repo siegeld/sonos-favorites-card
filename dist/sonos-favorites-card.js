@@ -1228,6 +1228,7 @@ const $120c5a859c012378$export$9dd6ff9ea0189349 = (0, $def2de46b9306e8a$export$d
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: 8px;
+    overflow-y: auto;
   }
 
   .fav-button {
@@ -1365,7 +1366,10 @@ class $a399cc6bbb0eb26a$export$5a2911305245fc9d extends (0, $ab210b2da7b39b9d$ex
         </div>
         <div class="card-content">
           ${this._favorites.length === 0 ? (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`<p class="loading">No favorites found</p>` : (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
-                <div class="button-grid">
+                <div
+                  class="button-grid"
+                  style="${this._config.rows ? `max-height: ${this._config.rows * 46}px` : ""}"
+                >
                   ${this._favorites.map((fav)=>(0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
                       <button
                         class="fav-button ${activeTitle === fav.title ? "active" : ""}"
@@ -1501,16 +1505,31 @@ class $d067581fc0d59830$export$b6195422e1303954 extends (0, $ab210b2da7b39b9d$ex
               `)}
           </select>
         </div>
+        <div class="row">
+          <label>Visible Rows</label>
+          <input
+            type="number"
+            min="1"
+            .value="${String(this._config.rows || "")}"
+            @input="${(e)=>{
+            const val = e.target.value;
+            this._valueChanged("rows", val ? Number(val) : undefined);
+        }}"
+            placeholder="All (no limit)"
+          />
+        </div>
       </div>
     `;
     }
     _valueChanged(key, value) {
+        const config = {
+            ...this._config
+        };
+        if (value === undefined || value === "") delete config[key];
+        else config[key] = value;
         this.dispatchEvent(new CustomEvent("config-changed", {
             detail: {
-                config: {
-                    ...this._config,
-                    [key]: value
-                }
+                config: config
             },
             bubbles: true,
             composed: true

@@ -77,14 +77,33 @@ export class SonosFavoritesCardEditor extends LitElement {
             )}
           </select>
         </div>
+        <div class="row">
+          <label>Visible Rows</label>
+          <input
+            type="number"
+            min="1"
+            .value="${String(this._config.rows || "")}"
+            @input="${(e: Event) => {
+              const val = (e.target as HTMLInputElement).value;
+              this._valueChanged("rows", val ? Number(val) : undefined as any);
+            }}"
+            placeholder="All (no limit)"
+          />
+        </div>
       </div>
     `;
   }
 
-  private _valueChanged(key: string, value: string) {
+  private _valueChanged(key: string, value: any) {
+    const config = { ...this._config };
+    if (value === undefined || value === "") {
+      delete (config as any)[key];
+    } else {
+      (config as any)[key] = value;
+    }
     this.dispatchEvent(
       new CustomEvent("config-changed", {
-        detail: { config: { ...this._config, [key]: value } },
+        detail: { config },
         bubbles: true,
         composed: true,
       })
