@@ -21,13 +21,16 @@ export class SonosFavoritesCardEditor extends LitElement {
   }
 
   private _discoverPlayers() {
+    const entities = (this._hass as any).entities || {};
     const players: { id: string; name: string }[] = [];
-    for (const [eid, stateObj] of Object.entries(this._hass.states)) {
-      if (eid.startsWith("media_player.")) {
+    for (const [eid, entry] of Object.entries(entities) as [string, any][]) {
+      if (eid.startsWith("media_player.") && entry.platform === "sonos") {
+        const stateObj = this._hass.states[eid];
         players.push({
           id: eid,
           name:
-            stateObj.attributes.friendly_name || eid.replace("media_player.", ""),
+            stateObj?.attributes?.friendly_name ||
+            eid.replace("media_player.", ""),
         });
       }
     }

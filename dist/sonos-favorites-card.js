@@ -1459,11 +1459,15 @@ class $d067581fc0d59830$export$b6195422e1303954 extends (0, $ab210b2da7b39b9d$ex
         this._discoverPlayers();
     }
     _discoverPlayers() {
+        const entities = this._hass.entities || {};
         const players = [];
-        for (const [eid, stateObj] of Object.entries(this._hass.states))if (eid.startsWith("media_player.")) players.push({
-            id: eid,
-            name: stateObj.attributes.friendly_name || eid.replace("media_player.", "")
-        });
+        for (const [eid, entry] of Object.entries(entities))if (eid.startsWith("media_player.") && entry.platform === "sonos") {
+            const stateObj = this._hass.states[eid];
+            players.push({
+                id: eid,
+                name: stateObj?.attributes?.friendly_name || eid.replace("media_player.", "")
+            });
+        }
         players.sort((a, b)=>a.name.localeCompare(b.name));
         this._mediaPlayers = players;
     }
