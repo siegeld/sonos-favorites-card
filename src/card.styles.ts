@@ -6,11 +6,22 @@ export const styles = css`
   }
 
   .card-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 0 0 8px;
+    margin: 0;
+  }
+
+  .header-title {
     font-size: 16px;
     font-weight: 500;
     color: var(--ha-card-header-color, var(--primary-text-color));
-    padding: 0 0 8px;
-    margin: 0;
+  }
+
+  .header-player {
+    font-size: 12px;
+    color: var(--secondary-text-color, #727272);
   }
 
   .card-content {
@@ -53,6 +64,16 @@ export const styles = css`
     background-color: var(--primary-color, #03a9f4);
     color: var(--text-primary-color, #fff);
     border-color: var(--primary-color, #03a9f4);
+  }
+
+  ha-card.compact {
+    padding: 12px 16px;
+  }
+
+  .no-speaker {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
   }
 
   .loading {

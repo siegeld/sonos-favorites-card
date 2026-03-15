@@ -1213,11 +1213,22 @@ const $120c5a859c012378$export$9dd6ff9ea0189349 = (0, $def2de46b9306e8a$export$d
   }
 
   .card-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 0 0 8px;
+    margin: 0;
+  }
+
+  .header-title {
     font-size: 16px;
     font-weight: 500;
     color: var(--ha-card-header-color, var(--primary-text-color));
-    padding: 0 0 8px;
-    margin: 0;
+  }
+
+  .header-player {
+    font-size: 12px;
+    color: var(--secondary-text-color, #727272);
   }
 
   .card-content {
@@ -1262,6 +1273,16 @@ const $120c5a859c012378$export$9dd6ff9ea0189349 = (0, $def2de46b9306e8a$export$d
     border-color: var(--primary-color, #03a9f4);
   }
 
+  ha-card.compact {
+    padding: 12px 16px;
+  }
+
+  .no-speaker {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+
   .loading {
     color: var(--secondary-text-color, #727272);
     font-size: 14px;
@@ -1280,16 +1301,31 @@ class $a399cc6bbb0eb26a$export$5a2911305245fc9d extends (0, $ab210b2da7b39b9d$ex
     static{
         this.styles = (0, $120c5a859c012378$export$9dd6ff9ea0189349);
     }
+    get _isPoolMode() {
+        return !!(this._config.pool_entity && this._config.pool_zone);
+    }
     setConfig(config) {
-        if (!config.entity) throw new Error("entity is required");
+        if (!config.entity && !(config.pool_entity && config.pool_zone)) throw new Error("entity or pool_entity + pool_zone is required");
         this._config = config;
         this._favorites = null;
         this._fetchedEntity = "";
+        this._resolvedEntity = config.entity || "";
         this._error = "";
     }
     set hass(hass) {
         this._hass = hass;
-        if (!this._fetching && this._config.entity && this._fetchedEntity !== this._config.entity) this._fetchFavorites();
+        if (this._isPoolMode) {
+            const poolState = hass.states[this._config.pool_entity];
+            const assignments = poolState?.attributes?.assignments;
+            const assigned = assignments?.[this._config.pool_zone] || "";
+            if (assigned !== this._resolvedEntity) {
+                this._resolvedEntity = assigned;
+                this._fetchedEntity = "";
+                this._favorites = null;
+                this._error = "";
+            }
+        }
+        if (!this._fetching && this._resolvedEntity && this._fetchedEntity !== this._resolvedEntity) this._fetchFavorites();
     }
     async _fetchFavorites() {
         this._fetching = true;
@@ -1297,7 +1333,7 @@ class $a399cc6bbb0eb26a$export$5a2911305245fc9d extends (0, $ab210b2da7b39b9d$ex
         try {
             const top = await this._hass.connection.sendMessagePromise({
                 type: "media_player/browse_media",
-                entity_id: this._config.entity,
+                entity_id: this._resolvedEntity,
                 media_content_type: "favorites",
                 media_content_id: ""
             });
@@ -1305,7 +1341,7 @@ class $a399cc6bbb0eb26a$export$5a2911305245fc9d extends (0, $ab210b2da7b39b9d$ex
             for (const child of top.children || [])if (child.media_content_type === "favorites_folder") {
                 const folder = await this._hass.connection.sendMessagePromise({
                     type: "media_player/browse_media",
-                    entity_id: this._config.entity,
+                    entity_id: this._resolvedEntity,
                     media_content_type: child.media_content_type,
                     media_content_id: child.media_content_id
                 });
@@ -1318,7 +1354,7 @@ class $a399cc6bbb0eb26a$export$5a2911305245fc9d extends (0, $ab210b2da7b39b9d$ex
             }
             favorites.sort((a, b)=>a.title.localeCompare(b.title));
             this._favorites = favorites;
-            this._fetchedEntity = this._config.entity;
+            this._fetchedEntity = this._resolvedEntity;
         } catch (e) {
             this._error = e.message || "Failed to load favorites";
             this._favorites = [];
@@ -1328,20 +1364,35 @@ class $a399cc6bbb0eb26a$export$5a2911305245fc9d extends (0, $ab210b2da7b39b9d$ex
     }
     _playFavorite(fav) {
         this._hass.callService("media_player", "play_media", {
-            entity_id: this._config.entity,
+            entity_id: this._resolvedEntity,
             media_content_type: "favorite_item_id",
             media_content_id: fav.content_id
         });
     }
     _getActiveTitle() {
-        const stateObj = this._hass?.states[this._config.entity];
+        const stateObj = this._hass?.states[this._resolvedEntity];
         return stateObj?.attributes?.media_title || "";
     }
+    get _playerName() {
+        const stateObj = this._hass?.states[this._resolvedEntity];
+        return stateObj?.attributes?.friendly_name || this._resolvedEntity || "";
+    }
     render() {
+        const title = this._config.name || "Sonos Favorites";
+        if (this._isPoolMode && !this._resolvedEntity) return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+        <ha-card class="compact">
+          <div class="no-speaker">
+            <span class="header-title">${title}</span>
+            <span class="header-player">No speaker assigned</span>
+          </div>
+        </ha-card>
+      `;
+        const playerName = this._playerName;
         if (this._error) return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
         <ha-card>
           <div class="card-header">
-            ${this._config.name || "Sonos Favorites"}
+            <span class="header-title">${title}</span>
+            <span class="header-player">${playerName}</span>
           </div>
           <div class="card-content">
             <p class="error">${this._error}</p>
@@ -1351,7 +1402,8 @@ class $a399cc6bbb0eb26a$export$5a2911305245fc9d extends (0, $ab210b2da7b39b9d$ex
         if (!this._favorites) return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
         <ha-card>
           <div class="card-header">
-            ${this._config.name || "Sonos Favorites"}
+            <span class="header-title">${title}</span>
+            <span class="header-player">${playerName}</span>
           </div>
           <div class="card-content">
             <p class="loading">Loading favorites...</p>
@@ -1362,7 +1414,8 @@ class $a399cc6bbb0eb26a$export$5a2911305245fc9d extends (0, $ab210b2da7b39b9d$ex
         return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
       <ha-card>
         <div class="card-header">
-          ${this._config.name || "Sonos Favorites"}
+          <span class="header-title">${title}</span>
+          <span class="header-player">${playerName}</span>
         </div>
         <div class="card-content">
           ${this._favorites.length === 0 ? (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`<p class="loading">No favorites found</p>` : (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
@@ -1397,7 +1450,7 @@ class $a399cc6bbb0eb26a$export$5a2911305245fc9d extends (0, $ab210b2da7b39b9d$ex
         return 3;
     }
     constructor(...args){
-        super(...args), this._favorites = null, this._error = "", this._fetching = false, this._fetchedEntity = "";
+        super(...args), this._favorites = null, this._error = "", this._resolvedEntity = "", this._fetching = false, this._fetchedEntity = "";
     }
 }
 (0, $24c52f343453d62d$export$29e00dfd3077644b)([
@@ -1409,6 +1462,9 @@ class $a399cc6bbb0eb26a$export$5a2911305245fc9d extends (0, $ab210b2da7b39b9d$ex
 (0, $24c52f343453d62d$export$29e00dfd3077644b)([
     (0, $04c21ea1ce1f6057$export$ca000e230c0caa3e)()
 ], $a399cc6bbb0eb26a$export$5a2911305245fc9d.prototype, "_error", void 0);
+(0, $24c52f343453d62d$export$29e00dfd3077644b)([
+    (0, $04c21ea1ce1f6057$export$ca000e230c0caa3e)()
+], $a399cc6bbb0eb26a$export$5a2911305245fc9d.prototype, "_resolvedEntity", void 0);
 
 
 
@@ -1456,6 +1512,9 @@ class $d067581fc0d59830$export$b6195422e1303954 extends (0, $ab210b2da7b39b9d$ex
     static{
         this.styles = (0, $2d76c3c4bf101358$export$bb938ce6b1551c90);
     }
+    get _mode() {
+        return this._config.pool_entity ? "pool" : "direct";
+    }
     setConfig(config) {
         this._config = config;
     }
@@ -1488,23 +1547,55 @@ class $d067581fc0d59830$export$b6195422e1303954 extends (0, $ab210b2da7b39b9d$ex
           />
         </div>
         <div class="row">
-          <label>Entity</label>
+          <label>Mode</label>
           <select
-            @change="${(e)=>this._valueChanged("entity", e.target.value)}"
+            @change="${(e)=>this._modeChanged(e.target.value)}"
           >
-            <option value="" ?selected="${!this._config.entity}">
-              Select a media player...
+            <option value="direct" ?selected="${this._mode === "direct"}">
+              Direct Entity
             </option>
-            ${this._mediaPlayers.map((p)=>(0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
-                <option
-                  value="${p.id}"
-                  ?selected="${this._config.entity === p.id}"
-                >
-                  ${p.name}
-                </option>
-              `)}
+            <option value="pool" ?selected="${this._mode === "pool"}">
+              Sonos Pool
+            </option>
           </select>
         </div>
+        ${this._mode === "direct" ? (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+              <div class="row">
+                <label>Entity</label>
+                <select
+                  @change="${(e)=>this._valueChanged("entity", e.target.value)}"
+                >
+                  <option value="" ?selected="${!this._config.entity}">
+                    Select a media player...
+                  </option>
+                  ${this._mediaPlayers.map((p)=>(0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+                      <option
+                        value="${p.id}"
+                        ?selected="${this._config.entity === p.id}"
+                      >
+                        ${p.name}
+                      </option>
+                    `)}
+                </select>
+              </div>
+            ` : (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+              <div class="row">
+                <label>Pool Entity</label>
+                <input
+                  .value="${this._config.pool_entity || ""}"
+                  @input="${(e)=>this._valueChanged("pool_entity", e.target.value)}"
+                  placeholder="sensor.sonos_pool_dante_pool"
+                />
+              </div>
+              <div class="row">
+                <label>Pool Zone</label>
+                <input
+                  .value="${this._config.pool_zone || ""}"
+                  @input="${(e)=>this._valueChanged("pool_zone", e.target.value)}"
+                  placeholder="lounge"
+                />
+              </div>
+            `}
         <div class="row">
           <label>Visible Rows</label>
           <input
@@ -1520,6 +1611,22 @@ class $d067581fc0d59830$export$b6195422e1303954 extends (0, $ab210b2da7b39b9d$ex
         </div>
       </div>
     `;
+    }
+    _modeChanged(mode) {
+        const config = {
+            ...this._config
+        };
+        if (mode === "direct") {
+            delete config.pool_entity;
+            delete config.pool_zone;
+        } else delete config.entity;
+        this.dispatchEvent(new CustomEvent("config-changed", {
+            detail: {
+                config: config
+            },
+            bubbles: true,
+            composed: true
+        }));
     }
     _valueChanged(key, value) {
         const config = {

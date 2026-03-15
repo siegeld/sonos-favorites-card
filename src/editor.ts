@@ -11,6 +11,10 @@ export class SonosFavoritesCardEditor extends LitElement {
 
   static styles = editorStyles;
 
+  private get _mode(): "direct" | "pool" {
+    return this._config.pool_entity ? "pool" : "direct";
+  }
+
   setConfig(config: SonosFavoritesCardConfig) {
     this._config = config;
   }
@@ -54,29 +58,72 @@ export class SonosFavoritesCardEditor extends LitElement {
           />
         </div>
         <div class="row">
-          <label>Entity</label>
+          <label>Mode</label>
           <select
             @change="${(e: Event) =>
-              this._valueChanged(
-                "entity",
-                (e.target as HTMLSelectElement).value
-              )}"
+              this._modeChanged((e.target as HTMLSelectElement).value as "direct" | "pool")}"
           >
-            <option value="" ?selected="${!this._config.entity}">
-              Select a media player...
+            <option value="direct" ?selected="${this._mode === "direct"}">
+              Direct Entity
             </option>
-            ${this._mediaPlayers.map(
-              (p) => html`
-                <option
-                  value="${p.id}"
-                  ?selected="${this._config.entity === p.id}"
-                >
-                  ${p.name}
-                </option>
-              `
-            )}
+            <option value="pool" ?selected="${this._mode === "pool"}">
+              Sonos Pool
+            </option>
           </select>
         </div>
+        ${this._mode === "direct"
+          ? html`
+              <div class="row">
+                <label>Entity</label>
+                <select
+                  @change="${(e: Event) =>
+                    this._valueChanged(
+                      "entity",
+                      (e.target as HTMLSelectElement).value
+                    )}"
+                >
+                  <option value="" ?selected="${!this._config.entity}">
+                    Select a media player...
+                  </option>
+                  ${this._mediaPlayers.map(
+                    (p) => html`
+                      <option
+                        value="${p.id}"
+                        ?selected="${this._config.entity === p.id}"
+                      >
+                        ${p.name}
+                      </option>
+                    `
+                  )}
+                </select>
+              </div>
+            `
+          : html`
+              <div class="row">
+                <label>Pool Entity</label>
+                <input
+                  .value="${this._config.pool_entity || ""}"
+                  @input="${(e: Event) =>
+                    this._valueChanged(
+                      "pool_entity",
+                      (e.target as HTMLInputElement).value
+                    )}"
+                  placeholder="sensor.sonos_pool_dante_pool"
+                />
+              </div>
+              <div class="row">
+                <label>Pool Zone</label>
+                <input
+                  .value="${this._config.pool_zone || ""}"
+                  @input="${(e: Event) =>
+                    this._valueChanged(
+                      "pool_zone",
+                      (e.target as HTMLInputElement).value
+                    )}"
+                  placeholder="lounge"
+                />
+              </div>
+            `}
         <div class="row">
           <label>Visible Rows</label>
           <input
@@ -92,6 +139,23 @@ export class SonosFavoritesCardEditor extends LitElement {
         </div>
       </div>
     `;
+  }
+
+  private _modeChanged(mode: "direct" | "pool") {
+    const config = { ...this._config };
+    if (mode === "direct") {
+      delete (config as any).pool_entity;
+      delete (config as any).pool_zone;
+    } else {
+      delete (config as any).entity;
+    }
+    this.dispatchEvent(
+      new CustomEvent("config-changed", {
+        detail: { config },
+        bubbles: true,
+        composed: true,
+      })
+    );
   }
 
   private _valueChanged(key: string, value: any) {
